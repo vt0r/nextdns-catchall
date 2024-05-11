@@ -60,4 +60,4 @@ Inspired by the original gist located here:
 
 https://gist.github.com/Belphemur/f5f5afd19116ee17d4498f5ad87386a3
 
-Big thanks to @Belphemur for the original!
+Big thanks to [Belphemur](https://github.com/Belphemur) for the original!
