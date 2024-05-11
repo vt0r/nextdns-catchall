@@ -53,3 +53,11 @@ systemctl start nextdns-catchall
 systemctl stop nextdns-catchall
 systemctl restart nextdns-catchall
 ```
+
+## Credits
+
+Inspired by the original gist located here:
+
+https://gist.github.com/Belphemur/f5f5afd19116ee17d4498f5ad87386a3
+
+Big thanks to @Belphemur for the original!
