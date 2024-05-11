@@ -1,0 +1,54 @@
+# This file goes in /data/nextdns-catchall.service (mode a+r)
+[Unit]
+Description=NextDNS Catch all traffic
+After=nextdns.service
+Requires=nextdns.service
+
+[Install]
+WantedBy=multi-user.target nextdns.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# Add one of these for each bridge interface that has a LAN IP
+# and hosts a LAN subnet (one for each VLAN). Examples:
+ExecStart=sysctl -w net.ipv4.conf.br0.route_localnet=1
+# ExecStart=sysctl -w net.ipv4.conf.br100.route_localnet=1
+# ExecStart=sysctl -w net.ipv4.conf.br200.route_localnet=1
+# ...
+# Add one of these for each VPN interface (WireGuard, OpenVPN, Teleport)
+# ExecStart=sysctl -w net.ipv4.conf.wgsrv1.route_localnet=1
+# ExecStart=sysctl -w net.ipv4.conf.tun0.route_localnet=1
+# ...
+ExecStart=/usr/bin/env bash -c "iptables -w 30 -t nat -N NEXTDNS_CATCHALL || iptables -w 30 -t nat -F NEXTDNS_CATCHALL"
+ExecStart=/usr/bin/env bash -c "iptables -w 30 -t nat -C PREROUTING -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL >/dev/null 2>&1 || iptables -w 30 -t nat -A PREROUTING -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL"
+ExecStart=/usr/bin/env bash -c "iptables -w 30 -t nat -C PREROUTING -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL >/dev/null 2>&1 || iptables -w 30 -t nat -A PREROUTING -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL"
+# Have some internal (or external) DNS servers you want to allow unencrypted queries to?
+# The following two examples show how you can add exceptions to the catch all for UDP and TCP
+# NOTE: this will allow UNENCRYPTED queries to hit any IP(s) you add here as exceptions, so be careful!
+#       Allowing any external IPs here defeats the purpose of this script if you need to leave your internal network to reach them!
+# You should specify each IP as a CIDR (just append /32), and you can add multiple, comma-separated, right after "-d" (destination)
+# --
+# ExecStart=iptables -w 30 -t nat -A NEXTDNS_CATCHALL -p udp -m udp -d 172.27.72.1/32,192.168.0.1/32 --dport 53 -j RETURN
+# ExecStart=iptables -w 30 -t nat -A NEXTDNS_CATCHALL -p tcp -m tcp -d 172.27.72.1/32,192.168.0.1/32 --dport 53 -j RETURN
+ExecStart=iptables -w 30 -t nat -A NEXTDNS_CATCHALL -p udp -m udp --dport 53 -j DNAT --to-destination 127.0.0.1:5342
+ExecStart=iptables -w 30 -t nat -A NEXTDNS_CATCHALL -p tcp -m tcp --dport 53 -j DNAT --to-destination 127.0.0.1:5342
+ExecStart=/usr/bin/env bash -c "ip6tables -w 30 -t nat -N NEXTDNS_CATCHALL || ip6tables -w 30 -t nat -F NEXTDNS_CATCHALL"
+ExecStart=/usr/bin/env bash -c "ip6tables -w 30 -t nat -C PREROUTING -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL >/dev/null 2>&1 || ip6tables -w 30 -t nat -A PREROUTING -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL"
+ExecStart=/usr/bin/env bash -c "ip6tables -w 30 -t nat -C PREROUTING -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL >/dev/null 2>&1 || ip6tables -w 30 -t nat -A PREROUTING -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL"
+ExecStart=ip6tables -w 30 -t nat -A NEXTDNS_CATCHALL -p udp -m udp --dport 53 -j DNAT --to-destination ::1:5342
+ExecStart=ip6tables -w 30 -t nat -A NEXTDNS_CATCHALL -p tcp -m tcp --dport 53 -j DNAT --to-destination ::1:5342
+
+ExecStop=iptables -w 30 -t nat -D PREROUTING -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=iptables -w 30 -t nat -D PREROUTING -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=-iptables -w 30 -t nat -D PREROUTING ! -d 127.0.0.0/8 -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=-iptables -w 30 -t nat -D PREROUTING ! -d 127.0.0.0/8 -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=iptables -w 30 -t nat -F NEXTDNS_CATCHALL
+ExecStop=iptables -w 30 -t nat -X NEXTDNS_CATCHALL
+ExecStop=ip6tables -w 30 -t nat -D PREROUTING -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=ip6tables -w 30 -t nat -D PREROUTING -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=-ip6tables -w 30 -t nat -D PREROUTING ! -d ::1 -m udp -p udp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=-ip6tables -w 30 -t nat -D PREROUTING ! -d ::1 -m tcp -p tcp --dport 53 -j NEXTDNS_CATCHALL
+ExecStop=ip6tables -w 30 -t nat -F NEXTDNS_CATCHALL
+ExecStop=ip6tables -w 30 -t nat -X NEXTDNS_CATCHALL
