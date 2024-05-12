@@ -28,3 +28,4 @@ cp $SOURCE_FILE_PATH $SYSTEMD_FILE_PATH
 systemctl daemon-reload
 systemctl enable $SERVICE_FILE
 systemctl start $SERVICE_FILE
+systemctl restart $SERVICE_FILE
